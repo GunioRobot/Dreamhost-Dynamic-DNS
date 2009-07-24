@@ -1,17 +1,21 @@
 #!/usr/local/bin/ruby
 
-%w[rubygems net/http net/https uuid].each { |x| require x}
+%w[rubygems net/http net/https uuid open-uri].each { |x| require x}
 
 class DreamhostDynamicDNS
   
   attr_accessor :api_key,
                 :uuid,
-                :url
+                :url,
+                :format,
+                :ipaddress
   
   def initialize(key = nil)
     @api_key = key
     @uuid = generate_uuid
-    @host = "https://api.dreamhost.com/?key=#{@api_key}&format=json"
+    @format = "json"
+    @ipaddress = get_ipaddress
+    @host = "https://api.dreamhost.com/?key=#{@api_key}&format=#{@format}"
     @url = URI.parse(@host)
   end
   
@@ -36,7 +40,8 @@ class DreamhostDynamicDNS
       return "Please enter a valid DNS type. ex: A, CNAME, MX, NS"
     end
     unless(value)
-      return "Please enter a valid DNS value. For example if type is a \"A\" then 192.168.0.1 would be the value."
+      puts "If no value is specified the default IP ADDRESS will be your current NAT IP #{@ipaddress}"
+      value = @ipaddress
     end               
    http = Net::HTTP.new(@url.host, @url.port)
    http.use_ssl = (@url.scheme == 'https')
@@ -89,6 +94,10 @@ class DreamhostDynamicDNS
   def generate_uuid
     uuid = UUID.new
     uuid.generate
+  end
+  
+  def get_ipaddress
+    open("http://whatismyip.com/") { |f| /([0-9]{1,3}\.){3}[0-9]{1,3}/.match(f.read)[0].to_a[0] }
   end
 	
 end
